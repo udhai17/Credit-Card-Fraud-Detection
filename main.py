@@ -5,8 +5,13 @@
 import os, sys
 import pandas as pd
 import numpy as np
+from sklearn.svm import SVC
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import GridSearchCV
 
-def load_data(csv_data):
+mySVM = SVC(kernel='rbf')
+
+def load_data(csv_data,ratio=0.1):
     # Read the csv nd extract all the required info
     dataframe = pd.read_csv(csv_data)
     num_pos = dataframe[dataframe['Class']==1].shape[0]
@@ -27,7 +32,7 @@ def load_data(csv_data):
 # data is pandas dataframe
 # Normal split, no stratified split
 # Bound to fail due to skewness of data
-def get_tr_tst(data,ratio):
+def get_tr_tst(data,ratio=0.10):
     temp = data.as_matrix()
     indices = np.random.permutation(data.shape[0])
     split_index = int(ratio*indices.size)
@@ -40,13 +45,20 @@ def get_tr_tst(data,ratio):
     return tst_data,tst_lb,tr_data,tr_lb
 
 def rbf_svm(tr_feat,tr_lb,tst_feat,tst_lb):
-    mySVM = SVC(kernel='rbf')
+#    mySVM = SVC(kernel='rbf')
     C_range = np.logspace(1,4,4)
     Gamma_range = np.logspace(1,4,4)
     param_grid = dict(gamma=Gamma_range, C=C_range)
     cv = StratifiedShuffleSplit(n_splits=10, test_size=0.1, random_state=32)
     clf = GridSearchCV(mySVM, param_grid=param_grid, cv=cv, n_jobs=-1)
     clf.fit(tr_feat,tr_lb)
+    print("The best parameters are %s with a score of {0:.2f}".format(clf.best_params_, clf.best_score_))
+
+    pred = clf.predict(tst_feat) - np.array(tst_lb)
+    count = 0
+    for i in pred:
+        if i==0: count = count+1
+    print('Accuracy = ' + str(count*100/len(tst_feat)))
 
 def main():
     csv_data = "creditcard.csv"
