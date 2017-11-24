@@ -42,7 +42,7 @@ def get_tr_tst(data,ratio=0.10):
     tr_lb = temp[indices[split_index:],-1]
     print("Statitics:")
     print(". # of train/test samples: {}/{}".format(tr_lb.size,tst_lb.size))
-    return tst_data,tst_lb,tr_data,tr_lb
+    return tr_data,tr_lb,tst_data,tst_lb
 
 def rbf_svm(tr_feat,tr_lb,tst_feat,tst_lb):
 #    mySVM = SVC(kernel='rbf')
@@ -63,8 +63,8 @@ def rbf_svm(tr_feat,tr_lb,tst_feat,tst_lb):
 def main():
     csv_data = "creditcard.csv"
     data = load_data(csv_data,0.1)
-    tst_feat,tst_lb,tr_feat,tr_lb = get_tr_tst(data,0.1)
-    rbf_svm(tst_feat,tst_lb,tr_feat,tr_lb)
+    tr_data,tr_lb,tst_data,tst_lb = get_tr_tst(data,0.1)
+    rbf_svm(tr_data,tr_lb,tst_data,tst_lb)
 
 
 if __name__=="__main__":
