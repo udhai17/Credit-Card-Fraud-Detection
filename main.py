@@ -11,6 +11,12 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import precision_recall_fscore_support
 
+# Fix seed for reproducibility 
+seed = 24
+np.random.seed(seed)
+print("*MESSAGE* Random seed: {}".format(seed))
+
+# Load data from csv into pandas dataframe
 def load_data(csv_data,ratio=0.1):
     # Read the csv nd extract all the required info
     dataframe = pd.read_csv(csv_data)
@@ -73,7 +79,7 @@ def svm(tr_data,tr_lb,tst_data,tst_lb,kernel='rbf'):
     C_range = [0.01,0.1,1,10,100,1000,10000]
     param_grid = dict(C=C_range)
     #param_grid
-    cv = StratifiedShuffleSplit(n_splits=5, test_size=0.1,random_state=10)
+    cv = StratifiedShuffleSplit(n_splits=5, test_size=0.1)
     clf = GridSearchCV(mySVM, param_grid=param_grid, cv=cv, n_jobs=-1)
     clf.fit(tr_data,tr_lb)
     message = ("*MESSAGE* Best C: {}, Score: {}".format(clf.best_params_['C'],clf.best_score_))
