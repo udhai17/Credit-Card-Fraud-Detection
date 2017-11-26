@@ -68,12 +68,12 @@ def get_tr_tst(X,Y,ratio=0.10):
     print(". # of train/test samples: {}/{}".format(tr_lb.size,tst_lb.size))
     return tr_data,tr_lb,tst_data,tst_lb
 
-def rbf_svm(tr_data,tr_lb,tst_data,tst_lb):
-    mySVM = SVC(kernel='rbf')
+def svm(tr_data,tr_lb,tst_data,tst_lb,kernel='rbf'):
+    mySVM = SVC(kernel='poly',class_weight='balanced')
     C_range = [0.01,0.1,1,10,100,1000,10000]
     param_grid = dict(C=C_range)
     #param_grid
-    cv = StratifiedShuffleSplit(n_splits=5, test_size=0.1)
+    cv = StratifiedShuffleSplit(n_splits=5, test_size=0.1,random_state=10)
     clf = GridSearchCV(mySVM, param_grid=param_grid, cv=cv, n_jobs=-1)
     clf.fit(tr_data,tr_lb)
     message = ("*MESSAGE* Best C: {}, Score: {}".format(clf.best_params_['C'],clf.best_score_))
@@ -85,13 +85,14 @@ def rbf_svm(tr_data,tr_lb,tst_data,tst_lb):
     print("*MESSAGE* Accuracy: {}".format(count/tst_lb.size))
     precision,recall,fscore = precision_recall_fscore_support(tst_lb,pred,average='binary')[0:3]
     print("*MESSAGE* Precision: {}, Recall: {}, F-score: {}".format(precision,recall,fscore))
+    #return pred
 
 def main():
     csv_data = "creditcard.csv"
     data = load_data(csv_data,0.1)
     X,Y = preprocess_FollowUnderSampling(data)
     tr_data,tr_lb,tst_data,tst_lb = get_tr_tst(X,Y,0.1)
-    rbf_svm(tr_data,tr_lb,tst_data,tst_lb)
+    svm(tr_data,tr_lb,tst_data,tst_lb,'poly')
 
 
 if __name__=="__main__":
