@@ -8,12 +8,16 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
 
 mySVM = SVC(kernel='rbf')
 
 def load_data(csv_data,ratio=0.1):
     # Read the csv nd extract all the required info
     dataframe = pd.read_csv(csv_data)
+    dataframe['NormalisedAamount'] = StandardScaler().fit_transform(dataframe['Amount'].reshape(-1, 1))
+    dataframe = dataframe.drop(['Time','Amount'],axis=1)
+    dataframe.head()
     num_pos = dataframe[dataframe['Class']==1].shape[0]
     num_neg = dataframe.shape[0]-num_pos
 
