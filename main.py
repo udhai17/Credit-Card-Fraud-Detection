@@ -159,7 +159,7 @@ def main():
     out dataset, lets analyze the full dataset now to know how good it is
     """
     cv = StratifiedKFold(n_splits=5)
-    classifier = SVC(C=1, kernel='poly', probability=True)
+    classifier = SVC(C=0.1, kernel='poly', probability=True)
     tprs,aucs = [],[]
     mean_fpr = np.linspace(0, 1, 100)
     i = 0
