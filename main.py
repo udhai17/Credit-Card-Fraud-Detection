@@ -157,6 +157,7 @@ def main():
     """
     Now we have the best C for SVM as well as best kernel performance for
     out dataset, lets analyze the full dataset now to know how good it is
+    The below code is taken from here: https://goo.gl/DcMhma 
     """
     cv = StratifiedKFold(n_splits=5)
     classifier = SVC(C=0.1, kernel='poly', probability=True)
