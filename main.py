@@ -150,7 +150,7 @@ def main():
     X,Y = preprocess_FollowUnderSampling(data)
     tr_data,tr_lb,tst_data,tst_lb = get_tr_tst(X,Y,0.1)
     # Find which kernel performs best
-    svm(tr_data,tr_lb,tst_data,tst_lb)
+    svm(tr_data,tr_lb,tst_data,tst_lb,'rbf')
     svm(tr_data,tr_lb,tst_data,tst_lb,'poly')
     svm(tr_data,tr_lb,tst_data,tst_lb,'sigmoid')
 
@@ -160,7 +160,7 @@ def main():
     The below code is taken from here: https://goo.gl/DcMhma 
     """
     cv = StratifiedKFold(n_splits=5)
-    classifier = SVC(C=0.1, kernel='poly', probability=True)
+    classifier = SVC(C=1, kernel='rbf', probability=True)
     tprs,aucs = [],[]
     mean_fpr = np.linspace(0, 1, 100)
     i = 0
@@ -193,7 +193,7 @@ def main():
     plt.ylim([-0.05, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Receiver operating characteristic example')
+    plt.title('Receiver operating characteristic example using 5-fold cross-validation')
     plt.legend(loc="lower right")
     plt.show()
 
