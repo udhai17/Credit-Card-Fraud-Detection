@@ -12,11 +12,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import confusion_matrix
+import itertools
 from scipy import interp
 import pylab
 import matplotlib.pyplot as plt
-
-pylab.rcParams['figure.figsize'] = (10, 6)
 
 # Fix seed for reproducibility 
 seed = 24
@@ -115,6 +115,29 @@ def plot_underSamplingInfo(data):
     plt.show()
 
 """
+Plot confusion matrix
+Code taken from here: https://goo.gl/NcUCCt
+"""
+def plot_confusion_matrix(cm, classes,title='Confusion matrix',cmap=plt.cm.Blues):
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+"""
 SVM has some hyper-parameters and is still considered one of the best classifiers
 The other thing to look for is what kernel performs best and it totally depends on data
 Our options are 'rbf', 'poly', and 'sigmoid'
@@ -142,6 +165,10 @@ def svm(tr_data,tr_lb,tst_data,tst_lb,kernel='rbf'):
     print("*MESSAGE* Accuracy: {}".format(count/tst_lb.size))
     precision,recall,fscore = precision_recall_fscore_support(tst_lb,pred,average='binary')[0:3]
     print("*MESSAGE* Precision: {}, Recall: {}, F-score: {}".format(precision,recall,fscore))
+    # PLot confusion matrix
+    cnf_matrix = confusion_matrix(tst_lb,pred)
+    plot_confusion_matrix(cnf_matrix,np.array(['non-fraud','fraud'],dtype='<U10'),title="Confusion matrix: kernel={}".format(kernel))
+    plt.show()
 
 def main():
     csv_data = "creditcard.csv"
