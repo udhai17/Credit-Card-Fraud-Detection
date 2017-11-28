@@ -3,16 +3,19 @@
 # Dataset Size: 68 MB
 
 import os, sys
+from collections import Counter
 import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import confusion_matrix
+from xgboost import XGBClassifier
 import itertools
 from scipy import interp
 import pylab
@@ -24,16 +27,20 @@ np.random.seed(seed)
 print("*MESSAGE* Random seed: {}".format(seed))
 
 # Load data from csv into pandas dataframe
-def load_data(csv_data,ratio=0.1):
+# Data set has a column 'Amount', which is not normalised
+# So, we normalise the 'Amount' column and drop the original 'Amount' Column
+def load_data(csv_data):
     # Read the csv nd extract all the required info
     dataframe = pd.read_csv(csv_data)
+    dataframe['NormalisedAmount'] = StandardScaler().fit_transform(dataframe['Amount'].values.reshape(-1, 1))
+    dataframe = dataframe.drop(['Time','Amount'],axis=1)
     num_pos = dataframe[dataframe['Class']==1].shape[0]
     num_neg = dataframe.shape[0]-num_pos
 
     # Print the statics of Data
     print("Data statitics:")
     print(". # of samples        : {}".format(dataframe.shape[0]))
-    print(". # of features       : {}".format(dataframe.shape[1]-1))
+    print(". # of columns        : {}".format(dataframe.shape[1]-1))
     print(". # of +ve/-ve samples: {}/{}".format(num_pos,num_neg))
 
     message = ("*MESSAGE* As you can see, out dataset is highly skewed: "
@@ -42,15 +49,11 @@ def load_data(csv_data,ratio=0.1):
 
     return dataframe
 
-"""
-Data set has a column 'Amount', which is not normalised
-So, we normalise the 'Amount' column and drop the original 'Amount' Column
-Further, since the data is highly skewed, we undersample it 
-"""
-def preprocess_FollowUnderSampling(data,ratio=4):
+# Since the data is highly skewed, we undersample it 
+def underSampling(data,ratio=4):
     print("*MESSAGE* Ratio of underSampling is {}:1".format(ratio))
-    data['NormalisedAmount'] = StandardScaler().fit_transform(data['Amount'].values.reshape(-1, 1))
-    data = data.drop(['Time','Amount'],axis=1)
+    #data['NormalisedAmount'] = StandardScaler().fit_transform(data['Amount'].values.reshape(-1, 1))
+    #data = data.drop(['Time','Amount'],axis=1)
 
     # Undersampling Steps
     fraud_count = len(data[data.Class==1])
@@ -64,9 +67,7 @@ def preprocess_FollowUnderSampling(data,ratio=4):
     Y_undersampled = undersampled_data.iloc[:,undersampled_data.columns=='Class']
     return X_undersampled,Y_undersampled
 
-"""
-X,Y are pandas dataframes
-"""
+# X,Y are pandas dataframes
 def get_tr_tst(X,Y,ratio=0.10):
     X = X.as_matrix()
     Y = Y.as_matrix()
@@ -97,7 +98,7 @@ def plot_underSamplingInfo(data):
     recall = [0]*max_ratio
     fscore = [0]*max_ratio
     for i in range(max_ratio):
-        X,Y = preprocess_FollowUnderSampling(data,i+1)
+        X,Y = underSampling(data,i+1)
         tr_data,tr_lb,tst_data,tst_lb = get_tr_tst(X,Y)
         pred = mySVM.fit(tr_data,tr_lb).predict(tst_data)
         count = 0
@@ -112,7 +113,7 @@ def plot_underSamplingInfo(data):
     plt.plot(x,fscore,label='F-Score')
     plt.xlabel('Non-Fraud:Fraud')
     plt.legend(loc="lower left")
-    plt.show()
+    plt.show(block=False)
 
 """
 Plot confusion matrix
@@ -168,35 +169,19 @@ def svm(tr_data,tr_lb,tst_data,tst_lb,kernel='rbf'):
     # PLot confusion matrix
     cnf_matrix = confusion_matrix(tst_lb,pred)
     plot_confusion_matrix(cnf_matrix,np.array(['non-fraud','fraud'],dtype='<U10'),title="Confusion matrix: kernel={}".format(kernel))
-    plt.show()
+    plt.show(block=False)
 
-def main():
-    csv_data = "creditcard.csv"
-    data = load_data(csv_data,0.1)
-    plot_underSamplingInfo(data)
-    X,Y = preprocess_FollowUnderSampling(data)
-    tr_data,tr_lb,tst_data,tst_lb = get_tr_tst(X,Y,0.1)
-    # Find which kernel performs best
-    svm(tr_data,tr_lb,tst_data,tst_lb,'rbf')
-    svm(tr_data,tr_lb,tst_data,tst_lb,'poly')
-    svm(tr_data,tr_lb,tst_data,tst_lb,'sigmoid')
-
-    """
-    Now we have the best C for SVM as well as best kernel performance for
-    out dataset, lets analyze the full dataset now to know how good it is
-    The below code is taken from here: https://goo.gl/DcMhma 
-    """
-    cv = StratifiedKFold(n_splits=5)
-    classifier = SVC(C=1, kernel='rbf', probability=True)
+def plot_roc(X,y,classifier):
+    cv = StratifiedKFold(n_splits=6)
     tprs,aucs = [],[]
     mean_fpr = np.linspace(0, 1, 100)
     i = 0
-    X_,Y_ = X.as_matrix(),Y.as_matrix()
-    Y_.shape = (Y_.size,)
-    for train, test in cv.split(X_, Y_):
-        probas_ = classifier.fit(X_[train], Y_[train]).predict_proba(X_[test])
+    X,y = X.as_matrix(),y.as_matrix()
+    y.shape = (y.size,)
+    for train, test in cv.split(X,y):
+        probas_ = classifier.fit(X[train], y[train]).predict_proba(X[test])
         # Compute ROC curve and area the curve
-        fpr, tpr, thresholds = roc_curve(Y_[test], probas_[:, 1])
+        fpr, tpr, thresholds = roc_curve(y[test], probas_[:, 1])
         tprs.append(interp(mean_fpr, fpr, tpr))
         tprs[-1][0] = 0.0
         roc_auc = auc(fpr, tpr)
@@ -220,10 +205,50 @@ def main():
     plt.ylim([-0.05, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Receiver operating characteristic example using 5-fold cross-validation')
+    plt.title('Receiver operating characteristic example using 6-fold cross-validation')
     plt.legend(loc="lower right")
-    plt.show()
+    plt.show(block=False)
 
+def main():
+    csv_data = "creditcard.csv"
+    data = load_data(csv_data)
+
+    # Plot undersampling info to get how much undersampling should we do
+    plot_underSamplingInfo(data)
+    X,y = underSampling(data)
+    
+    # Find which kernel performs best
+    tr_data,tr_lb,tst_data,tst_lb = get_tr_tst(X,y,0.1)
+    svm(tr_data,tr_lb,tst_data,tst_lb,'rbf')
+    svm(tr_data,tr_lb,tst_data,tst_lb,'poly')
+    svm(tr_data,tr_lb,tst_data,tst_lb,'sigmoid')
+
+    # Now we have the best C for SVM as well as best kernel performance for
+    # out dataset, lets analyze the full dataset now to know how good it is
+    # The below code is taken from here: https://goo.gl/DcMhma 
+    classifier = SVC(C=1, kernel='rbf', probability=True)
+    plot_roc(X,y,classifier)
+
+    # XGBClassifier
+    X = data.iloc[:,data.columns!='Class']
+    y = data.iloc[:,data.columns=='Class']
+    test_size = 0.10
+    X_train, X_test, y_train, y_test = train_test_split(X.as_matrix(), y.as_matrix(), test_size=test_size,random_state=seed)
+    y_train.shape, y_test.shape = (y_train.size,),(y_test.size,)
+    print("*MESSAGE* Train Count: {}".format(Counter(y_train)))
+    print("*MESSAGE* Test Count: {}".format(Counter(y_test)))
+    clf = XGBClassifier()
+    clf.fit(X_train, y_train)
+
+    # Plot confusion matrix for XGBClassifier
+    pred = clf.predict(X_test)
+    cm = confusion_matrix(y_test,pred)
+    plot_confusion_matrix(cm,np.array(['non-fraud','fraud'],dtype='<U10'),title='Confusion matrix: XGBClassifier')
+    plt.show(block=False)
+
+    # Plot ROC for XGBClassifier
+    classifier = XGBClassifier()
+    plot_roc(X,y,classifier)
 
 if __name__=="__main__":
     main()
