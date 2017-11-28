@@ -113,7 +113,7 @@ def plot_underSamplingInfo(data):
     plt.plot(x,fscore,label='F-Score')
     plt.xlabel('Non-Fraud:Fraud')
     plt.legend(loc="lower left")
-    plt.show(block=False)
+    plt.show()
 
 """
 Plot confusion matrix
@@ -169,7 +169,7 @@ def svm(tr_data,tr_lb,tst_data,tst_lb,kernel='rbf'):
     # PLot confusion matrix
     cnf_matrix = confusion_matrix(tst_lb,pred)
     plot_confusion_matrix(cnf_matrix,np.array(['non-fraud','fraud'],dtype='<U10'),title="Confusion matrix: kernel={}".format(kernel))
-    plt.show(block=False)
+    plt.show()
 
 def plot_roc(X,y,classifier):
     cv = StratifiedKFold(n_splits=6)
@@ -194,6 +194,7 @@ def plot_roc(X,y,classifier):
     mean_tpr[-1] = 1.0
     mean_auc = auc(mean_fpr, mean_tpr)
     std_auc = np.std(aucs)
+    print('*MESSAGE* Mean AUC: {}'.format(mean_auc))
     plt.plot(mean_fpr, mean_tpr, color='b',label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),lw=2, alpha=.8)
 
     std_tpr = np.std(tprs, axis=0)
@@ -207,12 +208,12 @@ def plot_roc(X,y,classifier):
     plt.ylabel('True Positive Rate')
     plt.title('Receiver operating characteristic example using 6-fold cross-validation')
     plt.legend(loc="lower right")
-    plt.show(block=False)
+    plt.show()
 
 def main():
     csv_data = "creditcard.csv"
     data = load_data(csv_data)
-
+    
     # Plot undersampling info to get how much undersampling should we do
     plot_underSamplingInfo(data)
     X,y = underSampling(data)
@@ -228,7 +229,7 @@ def main():
     # The below code is taken from here: https://goo.gl/DcMhma 
     classifier = SVC(C=1, kernel='rbf', probability=True)
     plot_roc(X,y,classifier)
-
+    
     # XGBClassifier
     X = data.iloc[:,data.columns!='Class']
     y = data.iloc[:,data.columns=='Class']
@@ -244,7 +245,7 @@ def main():
     pred = clf.predict(X_test)
     cm = confusion_matrix(y_test,pred)
     plot_confusion_matrix(cm,np.array(['non-fraud','fraud'],dtype='<U10'),title='Confusion matrix: XGBClassifier')
-    plt.show(block=False)
+    plt.show()
 
     # Plot ROC for XGBClassifier
     classifier = XGBClassifier()
