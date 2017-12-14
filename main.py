@@ -231,6 +231,7 @@ def main():
     plot_roc(X,y,classifier)
     
     # XGBClassifier
+    print("*MESSAGE* ==XGBClassifier==")
     X = data.iloc[:,data.columns!='Class']
     y = data.iloc[:,data.columns=='Class']
     test_size = 0.10
