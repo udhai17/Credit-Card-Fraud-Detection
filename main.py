@@ -243,6 +243,12 @@ def main():
 
     # Plot confusion matrix for XGBClassifier
     pred = clf.predict(X_test)
+    count = 0
+    for i in range(pred.size):
+        if pred[i]==y_test[i]: count += 1
+    print("*MESSAGE* Accuracy: {}".format(count/y_test.size))
+    precision,recall,fscore = precision_recall_fscore_support(y_test,pred,average='binary')[0:3]
+    print("*MESSAGE* Precision: {}, Recall: {}, F-score: {}".format(precision,recall,fscore))
     cm = confusion_matrix(y_test,pred)
     plot_confusion_matrix(cm,np.array(['non-fraud','fraud'],dtype='<U10'),title='Confusion matrix: XGBClassifier')
     plt.show()
